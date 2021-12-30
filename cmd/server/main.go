@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/rs/zerolog/log"
-
 	"github.com/GRbit/pow-server/inernal/app/server"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {

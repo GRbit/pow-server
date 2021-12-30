@@ -19,6 +19,7 @@ func takeTask(p pow.PoW) func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"error":"can't create task'"}`))
 			log.Error().Err(err).Msg("creating task")
+
 			return
 		}
 
@@ -42,6 +43,7 @@ func receiveWord(p pow.PoW) func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(`{"error":"decoding request"}`))
 			log.Error().Err(err).Msg("decoding receive word request")
+
 			return
 		}
 
@@ -49,6 +51,7 @@ func receiveWord(p pow.PoW) func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(`{"error":"incorrect task solution"}`))
 			log.Error().Err(err).Msg("validating task")
+
 			return
 		}
 
@@ -57,6 +60,7 @@ func receiveWord(p pow.PoW) func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"error":"encoding word of wisdom"}`))
 			log.Error().Err(err).Msg("encoding word of wisdom")
+
 			return
 		}
 

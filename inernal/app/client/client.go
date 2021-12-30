@@ -84,7 +84,7 @@ func solveTask(key string, c int, max uint64) (uint64, error) {
 	var sum big.Int
 
 	target := big.NewInt(1)
-	target.Lsh(target, uint(256-int(c)))
+	target.Lsh(target, uint(256-c))
 
 	for i := uint64(0); i < max; i++ {
 		n := make([]byte, 8)

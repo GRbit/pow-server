@@ -36,24 +36,23 @@ type PoW interface {
 
 func (p *pow) balanceLoad() {}
 
-func (p *pow) CreateTask() (string, int, error) {
+func (p *pow) CreateTask() (key string, complexity int, err error) {
 	k := make([]byte, 16)
-	_, err := rand.Read(k)
-	if err != nil {
+	if _, err = rand.Read(k); err != nil {
 		return "", 0, xerrors.Errorf("reading random bytes: %w", err)
 	}
 
 	c := p.complexity
 	p.cache.Set(k, []byte{c})
 
-	keyS := hex.EncodeToString(k)
+	key = hex.EncodeToString(k)
 
 	log.Debug().
-		Str("key", keyS).
+		Str("key", key).
 		Int("complexity", int(c)).
 		Msg("key created")
 
-	return keyS, int(c), nil
+	return key, int(c), nil
 }
 
 func (p *pow) ValidateTask(key string, nonce uint64) error {
@@ -88,7 +87,7 @@ func (p *pow) checkHash(s []byte, c byte) bool {
 	sumI.SetBytes(s[:])
 
 	target := big.NewInt(1)
-	target.Lsh(target, uint(256-int(p.complexity)))
+	target.Lsh(target, uint(256-int(c)))
 
 	return sumI.Cmp(target) == -1
 }
