@@ -5,6 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"math/big"
+	"runtime"
+	"sync/atomic"
+	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/rs/zerolog/log"
@@ -12,19 +15,26 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const maxComplexity = byte(127)
+const (
+	maxComplexity   = byte(127)
+	cmpRenewTimeout = time.Millisecond * 99
+)
 
 type pow struct {
 	cache      *fastcache.Cache
 	complexity byte
+	hashing    *int64
 }
 
-func New(c *fastcache.Cache, defaultComplexity byte) PoW {
+func New(c *fastcache.Cache, defaultComplexity byte, targetNumGoroutine int) PoW {
+	zero := int64(0)
+
 	p := &pow{
 		cache:      c,
 		complexity: defaultComplexity,
+		hashing:    &zero,
 	}
-	go p.balanceLoad()
+	go p.balanceLoad(int64(targetNumGoroutine))
 
 	return p
 }
@@ -34,7 +44,39 @@ type PoW interface {
 	ValidateTask(key string, nonce uint64) error
 }
 
-func (p *pow) balanceLoad() {}
+func (p *pow) balanceLoad(targetNumGoroutine int64) {
+	defaultC := p.complexity
+	maxC := int(defaultC) * 4
+	if maxC > int(maxComplexity) {
+		maxC = int(maxComplexity)
+	}
+
+	if targetNumGoroutine == 0 {
+		targetNumGoroutine = int64(runtime.NumCPU()/2 + 1)
+	}
+
+	for {
+		time.Sleep(cmpRenewTimeout)
+
+		n := atomic.LoadInt64(p.hashing)
+
+		if targetNumGoroutine < n && p.complexity < byte(maxC) {
+			p.complexity++
+			log.Debug().
+				Int64("target", targetNumGoroutine).
+				Int64("HashingGoroutines", n).
+				Int("complexity", int(p.complexity)).
+				Msg("complexity increased")
+		} else if targetNumGoroutine > n && p.complexity > defaultC {
+			p.complexity--
+			log.Debug().
+				Int64("target", targetNumGoroutine).
+				Int64("HashingGoroutines", n).
+				Int("complexity", int(p.complexity)).
+				Msg("complexity decreased")
+		}
+	}
+}
 
 func (p *pow) CreateTask() (key string, complexity int, err error) {
 	k := make([]byte, 16)
@@ -56,6 +98,9 @@ func (p *pow) CreateTask() (key string, complexity int, err error) {
 }
 
 func (p *pow) ValidateTask(key string, nonce uint64) error {
+	atomic.AddInt64(p.hashing, 1)
+	defer atomic.AddInt64(p.hashing, -1)
+
 	bKey, err := hex.DecodeString(key)
 	if err != nil {
 		return xerrors.Errorf("decoding key string: %w", err)

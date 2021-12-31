@@ -2,31 +2,57 @@ package server
 
 import (
 	"net/http"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/GRbit/pow-server/inernal/pow"
 	"github.com/GRbit/pow-server/inernal/quotes"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
+	"github.com/valyala/fasthttp"
 )
 
-func takeTask(p pow.PoW) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+const jsonContentType = "application/json"
+
+func requestHandler(p pow.PoW) func(ctx *fasthttp.RequestCtx) {
+	task := takeTask(p)
+	word := receiveWord(p)
+	return func(ctx *fasthttp.RequestCtx) {
+		defer func() {
+			if rvr := recover(); rvr != nil {
+				log.Error().
+					Interface("recover", rvr).
+					Str("stacktrace", string(debug.Stack())).
+					Msg("panic")
+				ctxError(ctx, "panic", http.StatusInternalServerError)
+			}
+		}()
+
+		switch string(ctx.Path()) {
+		case "/task":
+			task(ctx)
+		case "/word":
+			word(ctx)
+		default:
+			ctxError(ctx, `{"error":"Unsupported path"}`, fasthttp.StatusNotFound)
+		}
+	}
+}
+
+func takeTask(p pow.PoW) func(ctx *fasthttp.RequestCtx) {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.SetContentType(jsonContentType)
 
 		key, c, err := p.CreateTask()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"error":"can't create task'"}`))
+			ctx.Error(`{"error":"can't create task'"}`, fasthttp.StatusInternalServerError)
 			log.Error().Err(err).Msg("creating task")
 
 			return
 		}
 
-		t := `{"key":"` + key + `","complexity":` + strconv.Itoa(c) + `}`
-		if _, err := w.Write([]byte(t)); err != nil {
-			log.Error().Err(err).Msg("HealthCheck: body write err")
-		}
+		ctx.SetStatusCode(http.StatusOK)
+		ctx.SetBody([]byte(`{"key":"` + key + `","complexity":` + strconv.Itoa(c) + `}`))
 	}
 }
 
@@ -35,21 +61,20 @@ type solvedTask struct {
 	Nonce uint64
 }
 
-func receiveWord(p pow.PoW) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func receiveWord(p pow.PoW) func(ctx *fasthttp.RequestCtx) {
+	return func(ctx *fasthttp.RequestCtx) {
 		var t solvedTask
+		ctx.SetContentType(jsonContentType)
 
-		if err := jsoniter.NewDecoder(r.Body).Decode(&t); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(`{"error":"decoding request"}`))
+		if err := jsoniter.Unmarshal(ctx.PostBody(), &t); err != nil {
+			ctx.Error(`{"error":"decoding request"}`, fasthttp.StatusBadRequest)
 			log.Error().Err(err).Msg("decoding receive word request")
 
 			return
 		}
 
 		if err := p.ValidateTask(t.Key, t.Nonce); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(`{"error":"incorrect task solution"}`))
+			ctx.Error(`{"error":"incorrect task solution"}`, fasthttp.StatusBadRequest)
 			log.Error().Err(err).Msg("validating task")
 
 			return
@@ -57,16 +82,20 @@ func receiveWord(p pow.PoW) func(w http.ResponseWriter, r *http.Request) {
 
 		resp, err := jsoniter.Marshal(quotes.RandomQuote())
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"error":"encoding word of wisdom"}`))
+			ctxError(ctx, `{"error":"encoding word of wisdom"}`, fasthttp.StatusInternalServerError)
 			log.Error().Err(err).Msg("encoding word of wisdom")
 
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		if _, err = w.Write(resp); err != nil {
-			log.Error().Err(err).Msg("writing word of wisdom")
-		}
+		ctx.SetStatusCode(http.StatusOK)
+		ctx.SetBody(resp)
 	}
+}
+
+func ctxError(ctx *fasthttp.RequestCtx, msg string, statusCode int) {
+	ctx.Response.Reset()
+	ctx.SetStatusCode(statusCode)
+	ctx.SetContentType(jsonContentType)
+	ctx.SetBodyString(msg)
 }

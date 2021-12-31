@@ -6,28 +6,41 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/GRbit/pow-server/inernal/logger"
-	"github.com/GRbit/pow-server/inernal/quotes"
 	"github.com/go-resty/resty/v2"
 	"github.com/jessevdk/go-flags"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/sha3"
 	"golang.org/x/xerrors"
+
+	"github.com/GRbit/pow-server/inernal/logger"
+	"github.com/GRbit/pow-server/inernal/quotes"
 )
 
-func GetWord() error {
+type Client struct {
+	cfg           *clientConfig
+	cl            *resty.Client
+	NumOfRequests uint64
+}
+
+func New() (*Client, error) {
 	var cfg clientConfig
 
 	if _, err := flags.Parse(&cfg); err != nil {
-		return xerrors.Errorf("parsing client config: %w", err)
+		return nil, xerrors.Errorf("parsing client config: %w", err)
 	}
 
 	logger.Config(cfg.LogLevel, cfg.Console)
 
-	c := resty.New()
+	return &Client{
+		cfg:           &cfg,
+		cl:            resty.New(),
+		NumOfRequests: cfg.NumOfRequests,
+	}, nil
+}
 
-	r, err := c.R().Post("http://" + cfg.Addr + "/task")
+func (c *Client) GetWord() error {
+	r, err := c.cl.R().Post("http://" + c.cfg.Addr + "/task")
 	if err != nil {
 		return xerrors.Errorf("making request for task: %w", err)
 	}
@@ -45,16 +58,16 @@ func GetWord() error {
 		Int("complexity", k.Complexity).
 		Msg("task received")
 
-	nonce, err := solveTask(k.Key, k.Complexity, cfg.MaxComplexity)
+	nonce, err := solveTask(k.Key, k.Complexity, c.cfg.MaxComplexity)
 	if err != nil {
 		return xerrors.Errorf("solving task: %w", err)
 	}
 
-	r, err = c.R().SetBody(map[string]interface{}{
+	r, err = c.cl.R().SetBody(map[string]interface{}{
 		"key":   k.Key,
 		"nonce": nonce,
 	}).
-		Post("http://" + cfg.Addr + "/word")
+		Post("http://" + c.cfg.Addr + "/word")
 	if err != nil {
 		return xerrors.Errorf("making request for word: %w", err)
 	}

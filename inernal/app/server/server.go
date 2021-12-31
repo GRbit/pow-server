@@ -1,15 +1,12 @@
 package server
 
 import (
-	"net/http"
-	"runtime/debug"
-
 	"github.com/GRbit/pow-server/inernal/logger"
 	"github.com/GRbit/pow-server/inernal/pow"
 	"github.com/VictoriaMetrics/fastcache"
-	"github.com/go-chi/chi/v5"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog/log"
+	"github.com/valyala/fasthttp"
 	"golang.org/x/xerrors"
 )
 
@@ -26,16 +23,9 @@ func Serve() error {
 		return err
 	}
 
-	log.Info().Msg("Creating router...")
-
-	r := chi.NewRouter()
-	r.Use(recoverer)
-	r.Post("/task", takeTask(p))
-	r.Post("/word", receiveWord(p))
-
 	log.Info().Msg("Everything configured. ListenAndServe.")
 
-	return http.ListenAndServe(cfg.Addr, r)
+	return fasthttp.ListenAndServe(cfg.Addr, requestHandler(p))
 }
 
 func initService(cfg *serverConfig) (pow.PoW, error) {
@@ -47,23 +37,5 @@ func initService(cfg *serverConfig) (pow.PoW, error) {
 		return nil, xerrors.Errorf("can't use complexity out of bounds 1-127: %d", cfg.DefaultComplexity)
 	}
 
-	return pow.New(c, byte(cfg.DefaultComplexity)), nil
-}
-
-func recoverer(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if rvr := recover(); rvr != nil {
-				log.Error().
-					Interface("recover", rvr).
-					Str("stacktrace", string(debug.Stack())).
-					Msg("panic")
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-		}()
-
-		next.ServeHTTP(w, r)
-	}
-
-	return http.HandlerFunc(fn)
+	return pow.New(c, byte(cfg.DefaultComplexity), cfg.TargetHashing), nil
 }
