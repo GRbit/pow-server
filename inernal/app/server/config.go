@@ -1,3 +1,4 @@
+//nolint:lll // we have to make long lines with comments for flags
 package server
 
 type serverConfig struct {

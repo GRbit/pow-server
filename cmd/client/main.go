@@ -3,10 +3,9 @@ package main
 import (
 	"time"
 
+	"github.com/GRbit/pow-server/pkg/client"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/GRbit/pow-server/pkg/client"
 )
 
 func main() {

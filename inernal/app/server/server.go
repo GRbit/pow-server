@@ -25,7 +25,11 @@ func Serve() error {
 
 	log.Info().Msg("Everything configured. ListenAndServe.")
 
-	return fasthttp.ListenAndServe(cfg.Addr, requestHandler(p))
+	if err = fasthttp.ListenAndServe(cfg.Addr, requestHandler(p)); err != nil {
+		return xerrors.Errorf("fasthttp.ListenAndServe: %w", err)
+	}
+
+	return nil
 }
 
 func initService(cfg *serverConfig) (pow.PoW, error) {

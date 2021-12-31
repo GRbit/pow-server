@@ -2,9 +2,9 @@ package quotes
 
 import (
 	_ "embed"
-	"encoding/json"
 	"math/rand"
 
+	jsoniter "github.com/json-iterator/go"
 	"golang.org/x/xerrors"
 )
 
@@ -22,12 +22,12 @@ func (q Quote) String() string {
 }
 
 var (
-	quotes []Quote
-	l      float64
+	quotes []Quote //nolint:gochecknoglobals // since it's private, so it's ok
+	l      float64 //nolint:gochecknoglobals // since it's private, so it's ok
 )
 
 func init() {
-	if err := json.Unmarshal(quotesJSON, &quotes); err != nil {
+	if err := jsoniter.Unmarshal(quotesJSON, &quotes); err != nil {
 		panic(xerrors.Errorf("can't unmarshal assets/quotes.json: %w", err))
 	}
 
@@ -35,5 +35,5 @@ func init() {
 }
 
 func RandomQuote() Quote {
-	return quotes[int(rand.Float64()*l)]
+	return quotes[int(rand.Float64()*l)] //nolint:gosec // it's not for security proposes
 }

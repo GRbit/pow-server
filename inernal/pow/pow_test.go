@@ -1,4 +1,4 @@
-package pow
+package pow_test
 
 import (
 	"encoding/binary"

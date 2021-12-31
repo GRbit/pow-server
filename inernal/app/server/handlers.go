@@ -17,6 +17,7 @@ const jsonContentType = "application/json"
 func requestHandler(p pow.PoW) func(ctx *fasthttp.RequestCtx) {
 	task := takeTask(p)
 	word := receiveWord(p)
+
 	return func(ctx *fasthttp.RequestCtx) {
 		defer func() {
 			if rvr := recover(); rvr != nil {

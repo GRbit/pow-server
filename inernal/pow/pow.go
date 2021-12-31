@@ -129,7 +129,7 @@ func (p *pow) ValidateTask(key string, nonce uint64) error {
 
 func (p *pow) checkHash(s []byte, c byte) bool {
 	var sumI big.Int
-	sumI.SetBytes(s[:])
+	sumI.SetBytes(s)
 
 	target := big.NewInt(1)
 	target.Lsh(target, uint(256-int(c)))

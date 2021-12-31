@@ -1,0 +1,127 @@
+linters-settings:
+  gci:
+    local-prefixes: github.com/gluegroups
+  dupl:
+    threshold: 100
+  errorlint:
+    errorf: true
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  exhaustive:
+    check-generated: false
+    default-signifies-exhaustive: false
+  funlen:
+    lines: 60
+    statements: 40
+  gocognit:
+    min-complexity: 10
+  gocyclo:
+    min-complexity: 10
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+        # - experimental
+      - opinionated
+        # - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - unnecessaryBlock
+      - sloppyReassign
+  gofumpt:
+    extra-rules: true
+  govet:
+    check-shadowing: true
+    enable-all: true
+    printf:
+      funcs:
+        - prependf
+        - appendf
+        - msgf
+  lll:
+    line-length: 120
+    locale: US
+  nestif:
+    min-complexity: 4
+  nolintlint:
+    require-explanation: true
+    require-specific: false
+  forbidigo:
+    forbid:
+      - '^fmt\.Errorf$'
+  wrapcheck:
+    ignorePackageGlobs:
+      - github.com/gluegroups/glue-api/pkg/*
+      - github.com/stretchr/testify/mock
+      - gorm.io/gorm
+
+
+linters:
+    # disable-all: true
+  enable-all: true
+  disable:
+    - asciicheck
+    - godot
+    - gochecknoinits
+    - gocognit
+    - gomnd
+    - golint
+    - interfacer
+    - exhaustivestruct
+      # - lll
+    - maligned
+    - paralleltest
+    - wsl
+    - scopelint
+    - varnamelen
+    - ireturn
+
+issues:
+  # do not chek old code
+  # new: true
+
+  exclude-rules:
+    - path: integration-test
+      linters:
+        - paralleltest
+    - linters:
+        - govet
+      text: 'shadow: declaration of "err" shadows declaration at line'    
+    - linters:
+        - govet
+      text: 'fieldalignment'    
+    - linters:
+        - gosimple
+      text: 'should omit comparison to bool constant'
+    - linters:
+        - revive
+      text: 'unexported-return: exported func New'
+    - path: _test\.go
+      linters:
+        - gochecknoglobals
+        - dupl
+        - lll
+    - path: mocks\.go
+      linters:
+        - nlreturn
+    - path: pkg/handlers/stream\.go
+      linters:
+        - nlreturn
+    - path: pkg/resolvers/nodes/node.go
+      linters:
+        - nlreturn
+    - path: pkg/config/variables.go
+      linters:
+        - lll
+  fix: true
+
+run:
+  skip-dirs:
+    - cmd/scratch
+  skip-dirs:
+    - docs
+
