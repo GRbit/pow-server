@@ -1,7 +1,7 @@
 package server
 
 type serverConfig struct {
-	Addr string `long:"addr" default:"localhost:1444" env:"SERVICE_ADDR" description:"service address"`
+	Addr string `long:"addr" default:":8080" env:"SERVICE_ADDR" description:"service address"`
 
 	TargetHashing     int  `short:"t" long:"target-num-hash-goroutines" default:"0" env:"TASK_COMPLEXITY " description:"Sets target number of concurrently run hash functions. If set to 0, will be set to half of NumCPU."`
 	DefaultComplexity uint `short:"c" long:"default-complexity" default:"20" env:"TASK_COMPLEXITY" description:"sets default task complexity (leading zeros in hash)"`

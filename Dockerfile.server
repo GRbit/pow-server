@@ -1,0 +1,25 @@
+FROM golang:alpine as builder
+
+RUN apk --update upgrade
+RUN apk --update --no-cache add ca-certificates git openssh-client
+
+WORKDIR /builds/
+
+ENV GO111MODULE=on
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+
+COPY . .
+
+RUN go build -a -o /tmp/pow-server ./cmd/server
+
+
+FROM alpine
+
+ARG APP_NAME=server
+
+WORKDIR /server/
+
+COPY --from=builder /tmp/pow-server /server/pow-server
+
+ENTRYPOINT ["./pow-server"]

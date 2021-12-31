@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/GRbit/pow-server/inernal/logger"
+	"github.com/GRbit/pow-server/inernal/quotes"
 	"github.com/go-resty/resty/v2"
 	"github.com/jessevdk/go-flags"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/sha3"
 	"golang.org/x/xerrors"
-
-	"github.com/GRbit/pow-server/inernal/logger"
-	"github.com/GRbit/pow-server/inernal/quotes"
 )
 
 type Client struct {

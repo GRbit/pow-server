@@ -1,0 +1,31 @@
+version: '3'
+services:
+  client:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.client
+    environment:
+      - LOG_LEVEL="debug"
+    container_name: pow_client
+    restart: on-failure
+    depends_on:
+      - server
+    networks:
+      - my-network
+
+  server:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.server
+    environment:
+      - LOG_LEVEL="debug"
+    container_name: pow_server
+    ports:
+      - 8080:8080
+    restart: on-failure
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge
